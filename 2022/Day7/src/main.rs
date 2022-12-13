@@ -1,56 +1,76 @@
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Cell, RefCell};
+use std::cmp::max;
 use std::collections::{HashMap, VecDeque};
-use std::ops::{Add, Index};
+use std::ops::{Add, Deref, Index};
 use std::rc::{Rc, Weak};
 
 static PAYLOAD: &'static [u8] = include_bytes!("./payload");
 
 
 type SmartMyFs2000 = Rc<RefCell<MyFs2000>>;
+
 #[derive(Clone)]
 pub struct MyFs2000
 {
-    pub dir_name: Box<String>,
+    pub dir_name: String,
     pub sum_files: Cell<i32>,
-    pub child_dirs: Vec<SmartMyFs2000>,
+    pub child_dirs: RefCell<Vec<SmartMyFs2000>>,
     pub sum_files_recursive: Cell<i32>,
-    pub parent_dir_ref: Option<SmartMyFs2000>
+    pub parent_dir_ref: Option<SmartMyFs2000>,
 }
-
 
 
 impl MyFs2000
 {
-    pub fn new(dirname: String, parent: SmartMyFs2000) -> MyFs2000
+    pub fn new(dir_name: String, parent: SmartMyFs2000) -> MyFs2000
     {
         let filesystem = MyFs2000 {
-            dir_name: Box::new(dirname),
+            dir_name: dir_name,
             sum_files: Cell::new(0),
-            child_dirs: Vec::new(),
+            child_dirs: RefCell::new(Vec::new()),
             sum_files_recursive: Cell::new(0),
-            parent_dir_ref: Some(parent.clone())
+            parent_dir_ref: Some(parent.clone()),
         };
         return filesystem;
     }
-    pub fn add_child(&mut self, child: SmartMyFs2000) {
-        self.child_dirs.push(child);
-    }
 }
 
-fn find_dir(dir_name: &String, fs: SmartMyFs2000) -> Option<SmartMyFs2000>
+fn change_dir(dir_name: String, fs: SmartMyFs2000) -> Option<SmartMyFs2000>
 {
-    let current_dir_name = fs.clone().into_inner().dir_name.clone();
-    println!("{} == {}", current_dir_name, dir_name);
-    if &current_dir_name.to_string() == dir_name
+    if dir_name == "/"
     {
-        println!("Found {}", dir_name);
         return Some(fs.clone());
     }
-    else {
-        for n in fs.clone().get_mut().child_dirs.clone()
+    let mut current_obj_ref = &(*fs.try_borrow().unwrap()).child_dirs;
+
+    for n in current_obj_ref.borrow().iter()
+    {
+        let current_child_dir_name = &(*n.try_borrow().unwrap()).dir_name;
+        if current_child_dir_name == &dir_name
         {
-            let n = find_dir(dir_name, n.clone());
+            return Some(n.clone());
+        }
+    }
+    panic!("change_dir: No dir named {}", dir_name);
+}
+
+fn find_dir(dir_name: String, fs: SmartMyFs2000) -> Option<SmartMyFs2000>
+{
+    let current_dir_name = &(*fs.try_borrow().unwrap()).dir_name;
+    //println!("{} == {}", current_dir_name, dir_name);
+    if current_dir_name == &dir_name
+    {
+        //println!("Found {}", dir_name);
+        return Some(fs.clone());
+    }
+    else
+    {
+        let mut current_obj_ref = &(*fs.try_borrow().unwrap()).child_dirs;
+
+        for n in current_obj_ref.borrow().iter()
+        {
+            let n = find_dir(dir_name.clone(), n.clone());
             if n.is_some()
             {
                 return n;
@@ -59,103 +79,207 @@ fn find_dir(dir_name: &String, fs: SmartMyFs2000) -> Option<SmartMyFs2000>
 
             }
         }
-        return None;
+    }
+    return None;
+}
+
+fn acc_folder_lower_then(fs: &SmartMyFs2000, max_size: i32, mut sum: Rc<Cell<i32>>)
+{
+    let mut current_sum: i32 = 0;
+    let current_dir_name = &(*fs.try_borrow().unwrap()).dir_name;
+    let current_recursive_size = &(*fs.try_borrow().unwrap()).sum_files_recursive.get();
+
+    if current_recursive_size <= &max_size
+    {
+        sum.set(sum.get() + current_recursive_size);
+    }
+
+    let dirs = &(*fs.try_borrow().unwrap()).child_dirs;
+
+    if  (*dirs.try_borrow_mut().unwrap()).is_empty()
+    {
+        println!("end of line");
+    }
+    else
+    {
+        let mut current_obj_ref = &(*fs.try_borrow().unwrap()).child_dirs;
+        for n in current_obj_ref.borrow().iter()
+        {
+            acc_folder_lower_then(n, max_size, sum.clone());
+        }
     }
 }
 
-fn traverse_and_accumulate_size(fs: Rc<MyFs2000>)
+fn reverse_traverse(fs: &SmartMyFs2000, prev_size: i32, mut sum: Rc<Cell<i32>>)
 {
-    if fs.child_dirs.is_empty()
+    let current_dir_name = &(*fs.try_borrow().unwrap()).dir_name;
+    let dirs = &(*fs.try_borrow().unwrap()).child_dirs;
+    let current_size = &(*fs.try_borrow().unwrap()).sum_files.get();
+    &(*fs.try_borrow().unwrap()).sum_files_recursive.set(current_size + prev_size);
+    let current_size_rec = &(*fs.try_borrow().unwrap()).sum_files_recursive.get();
+    if *current_size_rec <= 100000
     {
-        println!("At end, calculating backwards");
-        fs.sum_files_recursive.set(fs.clone().sum_files.get());
-        //fs.clone().get_mut().sum_files_recursive.set(fs.clone().get_mut().sum_files.get());
+        println!("We are smaller then max {}", current_size_rec);
+        sum.set(sum.clone().get() + current_size_rec);
+    }
+    if  (*fs.try_borrow().unwrap()).parent_dir_ref.borrow().is_some()
+    {
+        let nn = &(*fs.try_borrow().unwrap()).parent_dir_ref;
+        reverse_traverse(&nn.clone().unwrap(), *current_size_rec, sum);
+    }
+}
+
+fn traverse_and_accumulate_size(fs: &SmartMyFs2000, mut tot: Rc<Cell<i32>>)
+{
+    let mut current_sum: i32 = 0;
+    let current_dir_name = &(*fs.try_borrow().unwrap()).dir_name;
+    let dirs = &(*fs.try_borrow().unwrap()).child_dirs;
+    let current_size = &(*fs.try_borrow().unwrap()).sum_files.get();
+
+    if  (*dirs.try_borrow_mut().unwrap()).is_empty()
+    {
+        println!("end of line at {}: {}", current_dir_name, current_size);
+        reverse_traverse(fs, 0, tot);
+    }
+    else
+    {
+        let mut current_obj_ref = &(*fs.try_borrow().unwrap()).child_dirs;
+
+        for n in current_obj_ref.borrow().iter()
+        {
+            traverse_and_accumulate_size(n, tot.clone());
+        }
     }
 }
 
 
 fn task1()
 {
+    let mut indent:usize = 0;
     let mut filesystem = MyFs2000 {
-        dir_name: Box::new(String::from("/")),
-        sum_files:  Cell::new(0),
-        child_dirs: Vec::new(),
+        dir_name: String::from("/"),
+        sum_files: Cell::new(0),
+        child_dirs: RefCell::new(Vec::new()),
         sum_files_recursive: Cell::new(0),
-        parent_dir_ref: Option::None
+        parent_dir_ref: Option::None,
     };
 
     let root_fs = Rc::new(RefCell::new(filesystem));
-    let mut current_fs: SmartMyFs2000 = root_fs.clone();
+    let mut current_fs = root_fs.clone();
     let payload_str = std::str::from_utf8(PAYLOAD).unwrap();
     let lines = payload_str.split('\n');
+    let mut count: i32 = 0;
     for line in lines
     {
+        count = count + 1;
         if line == ""
         {
             continue;
         }
         if line == "$ cd .."
         {
+            let mut old_dir_name = String::from("");
+            {
+                old_dir_name = (*current_fs.try_borrow().unwrap()).dir_name.clone();
+            }
+            indent = indent - 4;
             // $ cd ..
-            let new_fs = current_fs.clone().get_mut().parent_dir_ref.unwrap().clone();
-            current_fs = new_fs;
+            let old_fs = current_fs.clone();
+            let is_next =  (*old_fs.try_borrow().unwrap()).parent_dir_ref.clone();
+            if is_next.is_some()
+            {
+                current_fs = is_next.unwrap();
+            }
+            else {
+                panic!("Failed to navigate up a level");
+            }
+            {
+
+                let dir_name = &(*current_fs.try_borrow().unwrap()).dir_name;
+                println!("{:indent$}{} DIR-Changed OUT {} -> {}", "", count, old_dir_name, dir_name, indent=indent);
+            }
 
         }
-        else if line.contains("$ cd ")
+        else if line.starts_with("$ cd")
         {
             // $ cd /
 
-
+            indent = indent + 4;
             let mut tmp = line.split(" ");
             tmp.next();
             tmp.next();
             let dir_name = tmp.next().unwrap().to_string();
-            let found_dir = find_dir(&dir_name, root_fs.clone());
+
+            let found_dir = change_dir(dir_name.clone(), current_fs.clone());
             if (found_dir.is_none())
             {
-                panic!("{} not found?", dir_name);
+                let current_dir_name = &(*current_fs.try_borrow().unwrap()).dir_name;
+                panic!("{} not found? at {}", dir_name, current_dir_name);
             }
-            current_fs = found_dir.unwrap();
-        }
+            else {
+                current_fs = found_dir.unwrap();
+            }
 
+            {
+                let dir_name = &(*current_fs.try_borrow().unwrap()).dir_name;
+                println!("{:indent$}{} DIR-Changed IN to {}", "", count, dir_name, indent=indent);
+            }
+        }
         else if line == "$ ls"
         {
             // $ ls
         }
         else if line.starts_with("dir")
         {
+            let current_dir_name = &(*current_fs.try_borrow().unwrap()).dir_name;
             // dir e
             let mut tmp = line.split(" ");
             tmp.next();
             let dir_name = tmp.next().unwrap().to_string();
-
-            println!("Adding {}", &dir_name);
-            current_fs.clone().get_mut().add_child( Rc::new(RefCell::new(MyFs2000::new(dir_name.clone(),current_fs.clone()))) );
+            //println!("{:indent$}Adding {}", "", &dir_name, indent=indent);
+            let new_data = Rc::new(RefCell::new(MyFs2000::new(dir_name.clone(), current_fs.clone())));
+            let xx = &(*current_fs.try_borrow().unwrap()).child_dirs;
+            &(*xx.try_borrow_mut().unwrap()).push(new_data.clone());
+            println!("{:indent$}{} adding {} to {}", "", count, dir_name, current_dir_name, indent=indent);
         }
         else
         {
-                    // 4060174 j
-                    //calculate on current
-                    let mut tmp = line.split(" ");
-                    let val = tmp.next().unwrap().to_string();
-                    //println!("{}", val);
-                    let size = val.parse::<i32>().unwrap();
-                    println!("adding size: {} to {}", size, current_fs.clone().get_mut().dir_name);
-                    let currentsize = current_fs.clone().get_mut().sum_files.get();
-                    current_fs.clone().get_mut().sum_files.set(currentsize + size);
-                    //(*current_fs.as_ptr()).sum_files.set(currentsize + size);
+            // 4060174 j
+            //calculate on current
+            let mut tmp = line.split(" ");
+            let val = tmp.next().unwrap().to_string();
+            //println!("{}", val);
+            let size = val.parse::<i32>().unwrap();
+            let dir_name = &(*current_fs.try_borrow().unwrap()).dir_name;
+            //println!("{:indent$}adding size: {} to {}", "", size, dir_name, indent=indent);
+            let currentsize = &(*current_fs.try_borrow().unwrap()).sum_files.get();
+            &(*current_fs.try_borrow().unwrap()).sum_files.set(currentsize + size);
+            //(*current_fs.as_ptr()).sum_files.set(currentsize + size);
         }
     }
-    let mut megasum: i32 = 0;
+    //let mut megasum: i32 = 0;
 
-
-    println!("task1 sum: {}", megasum);
-
+    let megasum: Rc<Cell<i32>> = Rc::new(Cell::new(0));
+    traverse_and_accumulate_size(&root_fs, megasum.clone());
+    let sum = Rc::new(Cell::new(0));
+    acc_folder_lower_then(&root_fs, 100000, sum.clone());
+    println!("task1 sum: {}", sum.get());
 }
 
 fn task2()
 {
+    let mut filesystem = MyFs2000 {
+        dir_name: String::from("/"),
+        sum_files: Cell::new(0),
+        child_dirs: RefCell::new(Vec::new()),
+        sum_files_recursive: Cell::new(0),
+        parent_dir_ref: Option::None,
+    };
 
+    let root_fs = Rc::new(RefCell::new(filesystem));
+    let mut current_fs: SmartMyFs2000 = root_fs.clone();
+
+    let found_dir = find_dir(String::from("TEST"), root_fs.clone());
 }
 
 fn main()
