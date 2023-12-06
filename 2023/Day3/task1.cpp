@@ -17,8 +17,6 @@ void task1::Run()
     std::cout << "Task1" << std::endl;
     std::ifstream file("payload.txt");
     std::string currentline;
-    // regex 1:
-    // regex 2: ((\d+ (blue|red|green))(,|;|))
     std::vector<std::string> lines;
     while(getline(file, currentline))
     {
@@ -26,82 +24,94 @@ void task1::Run()
             lines.emplace_back(currentline);
         }
     }
-    std::regex digits("(.{0,1}\\d+.{0,1})");
+    std::regex digits("(\\d+)");
 
     auto iter_end = std::sregex_iterator ();
     std::vector<int> digits_list;
     for (int x = 0; x < lines.size(); x++)
     {
-
         auto &l = lines[x];
         auto digits_begin = std::sregex_iterator(l.begin(), l.end(), digits);
         for (auto n = digits_begin; n != iter_end; ++n)
         {
-
             std::string chksum;
             std::smatch m = *n;
             auto digit = m.str(1);
-            //std::cout << digit << std::endl;
+            std::cout << digit << std::endl;
 
+            auto startpos = m.position();
+            auto length = digit.size();
 
-            auto spos = l.find(digit);
-            auto len = digit.size();
+            bool isatbegining = startpos == 0;
+            bool isatend = startpos + length > l.length();
 
+            bool isattop = x-1 < 0;
+            bool isatbottom = x + 1 == lines.size();
 
+            auto spos = isatbegining ? 0 : startpos - 1;
+            auto len = isatend || isatbegining ? length + 1 : length + 2;
 
-
-            if (x-1 < 0)
+            /*
+            if (lines[x].substr(spos,len) == "01.")
             {
-                //chksum.append(lines[x-1].substr(spos,len));
+                std::cout << "SPOS: " << spos << " Len: " << len << std::endl;
+                std::cout << lines[x].substr(spos) << std::endl;
+                std::cout << lines[x] << std::endl;
+                return;
+            }
+            */
+
+            if (isattop)
+            {
                 chksum.append(lines[x].substr(spos,len));
                 chksum.append( lines[x+1].substr(spos,len));
-                // -- std::cout << lines[x-1].substr(spos,len)    << std::endl;
-                //std::cout << lines[x].substr(spos,len)      << std::endl;
-                //std::cout << lines[x+1].substr(spos,len)    << std::endl;
+
+                std::cout << lines[x].substr(spos,len)      << std::endl;
+                std::cout << lines[x+1].substr(spos,len)    << std::endl;
             }
-            else if (x + 1 == lines.size())
+            else if (isatbottom)
             {
                 chksum.append(lines[x-1].substr(spos,len));
                 chksum.append(lines[x].substr(spos,len));
-                //chksum.append( lines[x+1].substr(spos,len));
 
-                //std::cout << lines[x-1].substr(spos,len)    << std::endl;
-                //std::cout << lines[x].substr(spos,len)      << std::endl;
-                // -- std::cout << lines[x+1].substr(spos,len)    << std::endl << std::endl;
+                std::cout << lines[x-1].substr(spos,len)    << std::endl;
+                std::cout << lines[x].substr(spos,len)      << std::endl;
             }
             else
             {
                 chksum.append(lines[x-1].substr(spos,len));
                 chksum.append(lines[x].substr(spos,len));
                 chksum.append(lines[x+1].substr(spos,len));
+                std::cout << lines[x-1].substr(spos,len)    << std::endl;
+                std::cout << lines[x].substr(spos,len)      << std::endl;
+                std::cout << lines[x+1].substr(spos,len)    << std::endl;
             }
-            // std::cout << chksum << std::endl;
+            //std::cout << std::endl;
 
             if ( std::regex_search(chksum, std::regex(R"([\*\$\+\-\/=%&@#])")) )
             {
-                auto xx1_regex =  std::regex(R"(\d+)");
-                auto xx1_begin = std::sregex_iterator(digit.begin(), digit.end(),xx1_regex);
-                for (auto xxloop = xx1_begin; xxloop != iter_end; ++xxloop)
-                {
-                    
-                    std::smatch xxm = *xxloop;
-                    int d = std::stoi(xxm.str());
-
+                    int d = std::stoi(digit);
                     digits_list.emplace_back(d);
+                    /*
+                    std::cout << " " << "FOUND ("
+                        << chksum << ") Cleaned: "
+                        << d << " | sum = "
+                        << sum << " + "
+                        << d
+                        << " ( = " << sum+d << ")"
+                        <<  std::endl;
+                    */
                     sum = sum + d;
-                    //std::cout << digit  << " " << "FOUND (" << chksum << ") Cleaned: " << d <<std::endl;
-                }
             }
             else
             {
-                //std::cout <<  digit  << " " << "NOT FOUND (" << chksum << ")" <<std::endl;
+                std::cout << " " << "NOT FOUND (" << chksum << ")" <<std::endl;
                 notfoundcount++;
             }
 
         }
 
     }
-
 
     std::cout << "Not found: " << notfoundcount << std::endl;
     std::cout << "Task1 SUM: " << sum <<std::endl;
