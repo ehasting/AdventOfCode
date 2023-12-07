@@ -5,7 +5,7 @@
 int main() {
     std::cout << "Day2" << std::endl;
     task1 t1;
-    t1.Run();
+    //t1.Run();
 
     task2 t2;
     //t2.Tests();
