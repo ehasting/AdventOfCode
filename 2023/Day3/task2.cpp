@@ -88,7 +88,6 @@ void task2::Run()
                 found = true;
                 current_checksum = digit_match.suffix().str();
             }
-
             if (found)
             {
                 std::vector<int> rval;
@@ -102,8 +101,6 @@ void task2::Run()
                         auto t = this->FindFullNumber(lines[x + 1].substr(spos, len), lines[x + 1], spos);
                         rval.insert(rval.end(), t.begin(), t.end());
                     }
-
-
                 }
                 else if (isatbottom)
                 {
@@ -130,8 +127,6 @@ void task2::Run()
                         auto t = this->FindFullNumber(lines[x + 1].substr(spos, len), lines[x + 1], spos);
                         rval.insert(rval.end(), t.begin(), t.end());
                     }
-
-
                 }
                 int factor = 1;
                 std::cout << std::endl;
