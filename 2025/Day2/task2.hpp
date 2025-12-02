@@ -10,6 +10,9 @@
 #include <print>
 #include <algorithm>
 #include <execution>
+#include <ctime>
+#include <ranges>
+#include <chrono>
 
 class task2
 {
@@ -23,35 +26,21 @@ public:
     }
     std::vector<long> processRange(const long startId, const long stopId)
     {
+        auto start = std::chrono::high_resolution_clock::now();
         std::println("START: Processing {0} to {1}", startId, stopId);
         std::vector<long> rval;
-        std::vector<long> currentrange;
-        for (long i = startId; i <= stopId; i++)
-        {
-            currentrange.push_back(i);
-        }
+        std::vector<long> currentrange = std::views::iota(startId, stopId) | std::ranges::to<std::vector>();
 
         std::for_each(std::execution::par_unseq, currentrange.begin(), currentrange.end(), [&](long& value) {
             auto ids = this->hasInvalidIds(value);
             if (!ids.empty())
             {
                 this->addToVector(rval, ids);
-                //rval.insert(rval.end(), ids.begin(), ids.end());
             }
         });
-        /*
-        for (long i = startId; i <= stopId; i++)
-        {
-            //std::cout << i << std::endl;
-            auto ids = this->hasInvalidIds(i);
-            if (!ids.empty())
-            {
-                rval.insert(rval.end(), ids.begin(), ids.end());
-            }
-
-        }
-        */
-        std::println("STOP: Processing {0} to {1}", startId, stopId);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration_ms = end - start;
+        std::println("STOP: Processing {0} to {1} (took {2}ms on {3} iterations)", startId, stopId, duration_ms.count(), currentrange.size());
         return rval;
     }
 
