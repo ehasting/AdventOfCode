@@ -17,12 +17,13 @@
 class task2
 {
 public:
+    double TotalTimeMs = 0;
     std::string TaskName = "Task2";
     void Run();
     std::mutex mtx; // Mutex to protect myVector
-    void addToVector(std::vector<long> &list, std::vector<long> vals) {
+    void addToVector(std::vector<long> &list, long vals) {
         std::lock_guard<std::mutex> lock(mtx);
-        list.insert(list.end(), vals.begin(), vals.end());
+        list.push_back(vals);
     }
     std::vector<long> processRange(const long startId, const long stopId)
     {
@@ -32,21 +33,19 @@ public:
         std::vector<long> currentrange = std::views::iota(startId, stopId) | std::ranges::to<std::vector>();
 
         std::for_each(std::execution::par_unseq, currentrange.begin(), currentrange.end(), [&](long& value) {
-            auto ids = this->hasInvalidIds(value);
-            if (!ids.empty())
-            {
-                this->addToVector(rval, ids);
-            }
+            if (this->hasInvalidIds(value))
+                this->addToVector(rval, value);
         });
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> duration_ms = end - start;
+        TotalTimeMs += duration_ms.count();
         std::println("STOP: Processing {0} to {1} (took {2}ms on {3} iterations)", startId, stopId, duration_ms.count(), currentrange.size());
         return rval;
     }
 
-    std::vector<long> hasInvalidIds(const long value)
+    bool hasInvalidIds(const long value)
     {
-        std::vector<long> rval;
+        //std::vector<long> rval;
         const std::string str_number = std::to_string(value);
         int digits = str_number.size()-1;
         bool is_added = false;
@@ -65,13 +64,13 @@ public:
                     group.push_back(sub);
                 }
                 auto target_value = *group.begin();
-                if (std::all_of(group.cbegin(), group.cend(), [&](std::string x) { return x == target_value; }))
+                if (std::ranges::all_of(std::as_const(group), [&](const std::string &x) { return x == target_value; }))
                 {
                     //std::println("found {0} of value: {1} (adding: {2})", group.size(), target_value, value);
                     if (!is_added)
                     {
-                        is_added = true;
-                        rval.push_back(value);
+                        return true;
+                        //return rval;
                     }
                 }
 
@@ -80,7 +79,7 @@ public:
             digits--;
 
         }
-        return rval;
+        return false;
     }
 };
 

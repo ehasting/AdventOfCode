@@ -42,5 +42,5 @@ void task2::Run()
 
     }
     auto result = std::reduce(badIds.begin(), badIds.end());
-    std::cout << this->TaskName << " SUM: " << result <<std::endl;
+    std::println("{0}: {1}, took {2}ms in total", this->TaskName, result, TotalTimeMs);
 }
