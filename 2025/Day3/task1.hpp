@@ -7,37 +7,79 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <print>
 
 class task1
 {
 public:
     std::string TaskName = "Task1";
     void Run();
-    std::vector<long> processRange(const long startId, const long stopId)
+    int processLine(const std::string &line)
     {
-        std::vector<long> rval;
-        for (long i = startId; i <= stopId; i++)
+        bool first = true;
+        char firstDigit = '0';
+        char secondDigit = '0';
+
+
+        std::println("{}", line);
+        const int lineLength = line.length();
+        int index = 0;
+
+        start:;
+        int highestDigitVal = 0;
+        int firstSeenIndex = 0;
+        for (; index < line.length();)
         {
-            //std::cout << i << std::endl;
-            if (this->hasInvalidId(i))
+            char d = line[index];
+            int numericVal = d - '0';
+            if (first)
             {
-                std::cout << i << std::endl;
-                rval.push_back(i);
+                if (index == lineLength - 2)
+                {
+                    if (numericVal > highestDigitVal)
+                    {
+                        firstDigit = d;
+                    }
+                    index++;
+                    firstSeenIndex = index;
+                    break;
+
+                }
+                if (numericVal == 9)
+                {
+                    firstDigit = d;
+                    index++;
+                    firstSeenIndex = index;
+                    break;
+                }
+                else if (numericVal > highestDigitVal)
+                {
+                    highestDigitVal = numericVal;
+                    firstDigit = d;
+                }
             }
-
+            else
+            {
+                if (numericVal > highestDigitVal)
+                {
+                    highestDigitVal = numericVal;
+                    secondDigit = d;
+                }
+            }
+            index++;
         }
+        if (first)
+        {
+            first = false;
+            goto start;
+        }
+        std::string digits;
 
-        return rval;
-    }
-    bool hasInvalidId(long value)
-    {
-        const std::string str_number = std::to_string(value);
-        const std::string lower = str_number.substr(0, (str_number.size()) / 2);
-        const std::string higher = str_number.substr((str_number.size() ) / 2);
-        if (lower == higher)
-            return true;
-        //std::cout << lower << " <-lower|higher-> " << higher << std::endl;
-        return false;
+            digits += firstDigit;
+            digits += secondDigit;
+
+        std::println("{0}", digits);
+        return std::stoi(digits);
     }
 
 };

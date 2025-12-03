@@ -5,11 +5,11 @@
 int main() {
     std::cout << "Day3" << std::endl;
     task1 t1;
-    //t1.Run();
+    t1.Run();
 
-    task2 t2;
+    //task2 t2;
 
-    t2.Run();
+    //t2.Run();
 
     return 0;
 }
