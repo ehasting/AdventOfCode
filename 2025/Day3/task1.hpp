@@ -22,40 +22,33 @@ public:
 
 
         std::println("{}", line);
-        const int lineLength = line.length();
+        const long lineLength = line.length();
         int index = 0;
 
         start:;
         int highestDigitVal = 0;
-        int firstSeenIndex = 0;
-        for (; index < line.length();)
+        int firstSeenIndex = -1;
+        for (; index < line.length();index++)
         {
             char d = line[index];
             int numericVal = d - '0';
             if (first)
             {
-                if (index == lineLength - 2)
-                {
-                    if (numericVal > highestDigitVal)
-                    {
-                        firstDigit = d;
-                    }
-                    index++;
-                    firstSeenIndex = index;
-                    break;
-
-                }
                 if (numericVal == 9)
                 {
                     firstDigit = d;
-                    index++;
                     firstSeenIndex = index;
                     break;
                 }
-                else if (numericVal > highestDigitVal)
+                if (numericVal > highestDigitVal)
                 {
                     highestDigitVal = numericVal;
+                    firstSeenIndex = index;
                     firstDigit = d;
+                }
+                if (index == lineLength - 2)
+                {
+                    break;
                 }
             }
             else
@@ -66,17 +59,24 @@ public:
                     secondDigit = d;
                 }
             }
-            index++;
         }
         if (first)
         {
             first = false;
+            if (firstSeenIndex != -1) {
+                index = firstSeenIndex;
+            }
+            std::println("first: {0} {1}", index, firstDigit);
+            index++;
             goto start;
+        }
+        else {
+            std::println("second: {0} {1}", index, secondDigit);
         }
         std::string digits;
 
-            digits += firstDigit;
-            digits += secondDigit;
+        digits += firstDigit;
+        digits += secondDigit;
 
         std::println("{0}", digits);
         return std::stoi(digits);
