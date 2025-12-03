@@ -15,12 +15,12 @@
 void task2::Run()
 {
     std::cout << this->TaskName << std::endl;
-    std::ifstream file("testpayload.txt");
+    std::ifstream file("payload.txt");
     std::string line;
     long sum = 0;
     while(getline(file, line))
     {
-        int joltage = this->processLine(line);
+        long joltage = this->processLine(line);
         sum += joltage;
 
     }

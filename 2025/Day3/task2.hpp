@@ -21,72 +21,45 @@ public:
     std::string TaskName = "Task2";
     void Run();
     std::mutex mtx; // Mutex to protect myVector
-    int processLine(const std::string &line)
+    long processLine(const std::string &line)
     {
         std::vector<char> digits;
-        int digitIndex = 0;
+        int lastDigitIndex = 0;
         const int MaxDigits = 12;
 
-
-        std::println("{}", line);
-        const long lineLength = line.length();
+        // std::println("{}", line);
         int index = 0;
-
-        start:;
-        int highestDigitVal = 0;
-        int firstSeenIndex = -1;
-        for (; index < line.length();index++)
+        for (int digitIndex = 0; digitIndex < MaxDigits; digitIndex++)
         {
-            char d = line[index];
-            int numericVal = d - '0';
-            if (first)
+            int currentHighestDigits = 0;
+            int currentLowestIndex = -1;
+            char currentHighestDigitChar = ' ';
+            int capLength = (line.length() - MaxDigits) + digitIndex;
+            for (; index < capLength+1;index++)
             {
-                if (numericVal == 9)
+
+                char d = line[index];
+                int numericVal = d - '0';
+
+                if ((currentHighestDigits < numericVal) && (currentLowestIndex < capLength))
                 {
-                    firstDigit = d;
-                    firstSeenIndex = index;
-                    break;
-                }
-                if (numericVal > highestDigitVal)
-                {
-                    highestDigitVal = numericVal;
-                    firstSeenIndex = index;
-                    firstDigit = d;
-                }
-                if (index == lineLength - 2)
-                {
-                    break;
+                    currentHighestDigits = numericVal;
+                    currentLowestIndex = index;
+                    currentHighestDigitChar = d;
                 }
             }
-            else
-            {
-                if (numericVal > highestDigitVal)
-                {
-                    highestDigitVal = numericVal;
-                    secondDigit = d;
-                }
-            }
+            digits.push_back(currentHighestDigitChar);
+            index = currentLowestIndex + 1 ;
         }
-        if (first)
+
+        std::string digitsString;
+        for (auto d : digits)
         {
-            first = false;
-            if (firstSeenIndex != -1) {
-                index = firstSeenIndex;
-            }
-            std::println("first: {0} {1}", index, firstDigit);
-            index++;
-            goto start;
+            digitsString += d;
         }
-        else {
-            std::println("second: {0} {1}", index, secondDigit);
-        }
-        std::string digits;
-
-        digits += firstDigit;
-        digits += secondDigit;
-
-        std::println("{0}", digits);
-        return std::stoi(digits);
+        
+        std::println("new digitstring: {0}", digitsString);
+        return std::stol(digitsString);
     }
 };
 
