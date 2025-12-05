@@ -14,21 +14,27 @@
 void task1::Run()
 {
     std::cout << this->TaskName << std::endl;
-    std::ifstream file("payload.txt");
+    std::ifstream file("testpayload.txt");
     std::string line;
     long sum = 0;
     int linelength = 0;
     std::vector<char> payload;
     payload.reserve(19000);
+    bool isrange = true;
+    long rval = 0;
     while(getline(file, line))
     {
-        linelength = line.length();
-        for (auto c : line)
+        if (line.empty())
         {
-            payload.push_back(c);
+            isrange = false;
+            continue;
         }
+
+        if (isrange)
+            this->loadRange(line);
+        else
+            rval += this->testId(line);
     }
-    auto rval = this->processLine(payload, linelength);
     //this->draw(rval, linelength);
     std::cout << this->TaskName << " SUM: " << rval <<std::endl;
 }
