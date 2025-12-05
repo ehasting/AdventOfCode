@@ -15,7 +15,7 @@
 void task2::Run()
 {
     std::cout << this->TaskName << std::endl;
-    std::ifstream file("testpayload.txt");
+    std::ifstream file("payload.txt");
     std::string line;
     long sum = 0;
     int linelength = 0;

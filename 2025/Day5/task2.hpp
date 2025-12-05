@@ -22,22 +22,19 @@ public:
     long Min;
     long Max;
 
-    bool IsOverlap(Range2 &compare)
+    bool IsOverlap(const std::shared_ptr<Range2>& compare)
     {
-        if (!isRangeInsideRange(compare, *this))
+        if (!isRangeInsideRange(compare, std::make_shared<Range2>(*this)))
             return false;
-        if (!isRangeInsideRange(*this, compare))
-            return false;
-        if (this->Min > compare.Min)
-            this->Min = compare.Min;
-        if (this->Max < compare.Max)
-            this->Max = compare.Max;
-        std::println("new: {} - {}", this->Min, this->Max);
+        if (this->Min > compare->Min)
+            this->Min = compare->Min;
+        if (this->Max < compare->Max)
+            this->Max = compare->Max;
         return true;
     }
 private:
-    bool isRangeInsideRange(Range2 &a, Range2 &b) {
-        return a.Min <= b.Max && b.Min <= a.Max;
+    static bool isRangeInsideRange(std::shared_ptr<Range2> a, std::shared_ptr<Range2> b) {
+        return a->Min <= b->Max && b->Min <= a->Max;
     }
 
 };
@@ -48,8 +45,8 @@ public:
     double TotalTimeMs = 0;
     std::string TaskName = "Task2";
     void Run();
-    std::vector<Range2> Ranges;
-    void loadRange(std::string &line)
+    std::vector<std::shared_ptr<Range2>> Ranges;
+    void loadRange(const std::string &line)
     {
         long digitfrom = 0;
         long digitto = 0;
@@ -65,7 +62,7 @@ public:
             buffer += c;
         }
         digitto = std::stol(buffer);
-        Ranges.push_back(Range2(digitfrom, digitto));
+        Ranges.push_back(std::make_shared<Range2>(Range2(digitfrom, digitto)));
 
     }
     long countIds()
@@ -74,10 +71,12 @@ public:
 
         start:
         std::println("Starting. Ranges size: {}", Ranges.size());
+        /*
         for (auto range : Ranges)
         {
-            std::println("{} - {}", range.Min, range.Max);
+            std::println("{} - {}", range->Min, range->Max);
         }
+        */
         for (int i = 0; i < Ranges.size(); i++)
         {
             auto range = Ranges[i];
@@ -90,9 +89,9 @@ public:
                     continue;
                 }
 
-                if (range.IsOverlap(innerrange))
+                if (range->IsOverlap(innerrange))
                 {
-                    std::println("Deleting {} - {} [{}] (is matching {} - {} [{}])", innerrange.Min, innerrange.Max, inneri, range.Min, range.Max, i);
+                    std::println("Deleting {} - {} [{}] (is matching {} - {} [{}])", innerrange->Min, innerrange->Max, inneri, range->Min, range->Max, i);
                     Ranges.erase(Ranges.begin() + inneri);
                     goto start;
                 }
@@ -101,8 +100,7 @@ public:
 
         for (auto range : Ranges)
         {
-            //std::println("{} - {}", range.From, range.To);
-            rval += (range.Max - range.Min) + 1;
+            rval += (range->Max - range->Min) + 1;
         }
         return rval;
     }
