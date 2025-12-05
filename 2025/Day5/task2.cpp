@@ -15,7 +15,7 @@
 void task2::Run()
 {
     std::cout << this->TaskName << std::endl;
-    std::ifstream file("payload.txt");
+    std::ifstream file("testpayload.txt");
     std::string line;
     long sum = 0;
     int linelength = 0;
@@ -34,6 +34,6 @@ void task2::Run()
         this->loadRange(line);
     }
     rval = this->countIds();
-    //this->draw(rval, linelength);
+
     std::cout << this->TaskName << " SUM: " << rval <<std::endl;
 }

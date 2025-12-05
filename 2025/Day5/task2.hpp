@@ -18,30 +18,26 @@
 class Range2
 {
 public:
-    long From;
-    long To;
-    bool IsFromOutside;
-    bool IsToOutside;
-    Range2 Evaluate(Range2 compare)
+
+    long Min;
+    long Max;
+
+    bool IsOverlap(Range2 &compare)
     {
-        auto end1 = compare.To;
-        auto start2 = From;
-        auto end2 = To;
-        auto start1 = compare.From;
-        bool notOverlap = (end1 < start2) || (end2 < start1);
-        if (notOverlap)
-            return compare;
-
-        if (compare.From > From)
-            IsFromOutside = true;
-        if (compare.To < To)
-            IsToOutside = true;
-
-        if (IsFromOutside)
-            compare.From = From;
-        if (IsToOutside)
-            compare.To = To;
-
+        if (!isRangeInsideRange(compare, *this))
+            return false;
+        if (!isRangeInsideRange(*this, compare))
+            return false;
+        if (this->Min > compare.Min)
+            this->Min = compare.Min;
+        if (this->Max < compare.Max)
+            this->Max = compare.Max;
+        std::println("new: {} - {}", this->Min, this->Max);
+        return true;
+    }
+private:
+    bool isRangeInsideRange(Range2 &a, Range2 &b) {
+        return a.Min <= b.Max && b.Min <= a.Max;
     }
 
 };
@@ -74,25 +70,41 @@ public:
     }
     long countIds()
     {
-        std::unordered_map<long, bool> ids;
-        std::unordered_map<int, std::string> myMap = {{1, "apple"}, {2, "banana"}};
-        int keyToCheck = 2;
-
-
-
         long rval = 0;
+
+        start:
+        std::println("Starting. Ranges size: {}", Ranges.size());
         for (auto range : Ranges)
         {
-            for (long i = range.From; i <= range.To; i++)
+            std::println("{} - {}", range.Min, range.Max);
+        }
+        for (int i = 0; i < Ranges.size(); i++)
+        {
+            auto range = Ranges[i];
+            for (int inneri = 0; inneri < Ranges.size(); inneri++)
             {
-                if (ids.find(i) == ids.end())
+                auto innerrange = Ranges[inneri];
+
+                if (i == inneri)
                 {
-                    rval++;
-                    ids[i] = true;
+                    continue;
+                }
+
+                if (range.IsOverlap(innerrange))
+                {
+                    std::println("Deleting {} - {} [{}] (is matching {} - {} [{}])", innerrange.Min, innerrange.Max, inneri, range.Min, range.Max, i);
+                    Ranges.erase(Ranges.begin() + inneri);
+                    goto start;
                 }
             }
         }
-    return rval;
+
+        for (auto range : Ranges)
+        {
+            //std::println("{} - {}", range.From, range.To);
+            rval += (range.Max - range.Min) + 1;
+        }
+        return rval;
     }
 
 };
