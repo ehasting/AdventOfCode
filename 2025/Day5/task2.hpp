@@ -15,10 +15,35 @@
 #include <chrono>
 #include <unordered_map>
 
-struct Range2
+class Range2
 {
+public:
     long From;
     long To;
+    bool IsFromOutside;
+    bool IsToOutside;
+    Range2 Evaluate(Range2 compare)
+    {
+        auto end1 = compare.To;
+        auto start2 = From;
+        auto end2 = To;
+        auto start1 = compare.From;
+        bool notOverlap = (end1 < start2) || (end2 < start1);
+        if (notOverlap)
+            return compare;
+
+        if (compare.From > From)
+            IsFromOutside = true;
+        if (compare.To < To)
+            IsToOutside = true;
+
+        if (IsFromOutside)
+            compare.From = From;
+        if (IsToOutside)
+            compare.To = To;
+
+    }
+
 };
 
 class task2
