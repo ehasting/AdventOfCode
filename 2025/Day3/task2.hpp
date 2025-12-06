@@ -57,7 +57,7 @@ public:
         {
             digitsString += d;
         }
-        
+
         std::println("new digitstring: {0}", digitsString);
         return std::stol(digitsString);
     }

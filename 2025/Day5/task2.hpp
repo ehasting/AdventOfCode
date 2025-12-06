@@ -13,100 +13,30 @@
 #include <ctime>
 #include <ranges>
 #include <chrono>
-class Matrix2
+#include <unordered_map>
+
+class Range2
 {
-    public:
-    long NorthWest;
-    long North;
-    long NorthEast;
-    long East;
-    long SouthEast;
-    long South;
-    long SouthWest;
-    long West;
-    long Center;
-    long CurrentRow;
-    long CurrentCol;
-    long Cols;
-    std::shared_ptr<std::vector<char>> Line;
-    long Pos;
+public:
 
+    long Min;
+    long Max;
 
-    Matrix2(std::vector<char> line, const long cols, const long CurrentPos)
+    bool IsOverlap(const std::shared_ptr<Range2>& compare)
     {
-        this->Pos = CurrentPos;
-        this->Cols = cols;
-        this->Line = std::make_shared<std::vector<char>>(line);
-        this->CurrentRow = std::floor(CurrentPos / cols);
-        this->CurrentCol = CurrentPos - (this->CurrentRow * cols);
-
-        this->South = (this->CurrentRow+1) * cols + (this->CurrentCol);
-        this->SouthEast = (this->CurrentRow+1) * cols + (this->CurrentCol + 1);
-        this->SouthWest = (this->CurrentRow+1) * cols + (this->CurrentCol - 1);
-
-        this->West = CurrentPos - 1;
-        this->East = CurrentPos + 1;
-
-        this->North = (this->CurrentRow-1) * cols + (this->CurrentCol);
-        this->NorthEast = (this->CurrentRow-1) * cols + (this->CurrentCol + 1);
-        this->NorthWest = (this->CurrentRow-1) * cols + (this->CurrentCol - 1);
-
-        this->Center = CurrentPos;
+        if (!isRangeInsideRange(compare, std::make_shared<Range2>(*this)))
+            return false;
+        if (this->Min > compare->Min)
+            this->Min = compare->Min;
+        if (this->Max < compare->Max)
+            this->Max = compare->Max;
+        return true;
     }
-    long GetRollCount()
-    {
-        long rval = 0;
-        if (this->CurrentCol == 0)
-        {
-            rval += this->CheckIfTogetherWithPaper(this->North);
-            rval += this->CheckIfTogetherWithPaper(this->NorthEast);
-            rval += this->CheckIfTogetherWithPaper(this->East);
-            rval += this->CheckIfTogetherWithPaper(this->SouthEast);
-            rval += this->CheckIfTogetherWithPaper(this->South);
-        }
-        else if (this->CurrentCol == this->Cols-1)
-        {
-            rval += this->CheckIfTogetherWithPaper(this->North);
-            rval += this->CheckIfTogetherWithPaper(this->NorthWest);
-            rval += this->CheckIfTogetherWithPaper(this->West);
-            rval += this->CheckIfTogetherWithPaper(this->SouthWest);
-            rval += this->CheckIfTogetherWithPaper(this->South);
-        }
-        else
-        {
-            rval += this->CheckIfTogetherWithPaper(this->North);
-            rval += this->CheckIfTogetherWithPaper(this->NorthEast);
-            rval += this->CheckIfTogetherWithPaper(this->East);
-            rval += this->CheckIfTogetherWithPaper(this->SouthEast);
-            rval += this->CheckIfTogetherWithPaper(this->South);
-            rval += this->CheckIfTogetherWithPaper(this->SouthWest);
-            rval += this->CheckIfTogetherWithPaper(this->West);
-            rval += this->CheckIfTogetherWithPaper(this->NorthWest);
-        }
-        return rval;
+private:
+    static bool isRangeInsideRange(std::shared_ptr<Range2> a, std::shared_ptr<Range2> b) {
+        return a->Min <= b->Max && b->Min <= a->Max;
     }
-    long CheckIfTogetherWithPaper(long pos)
-    {
-        if (this->isInsideBounds(pos))
-        {
-            auto c = this->Line->at(pos);
-            if (c == '@')
-            {
-                return 1;
-            }
-            else if (c == '.')
-            {
 
-            }
-        }
-        return 0;
-    }
-    bool isInsideBounds(long position)
-    {
-        if (position >= 0 && position < this->Line->size())
-            return true;
-        return false;
-    }
 };
 
 class task2
@@ -115,60 +45,66 @@ public:
     double TotalTimeMs = 0;
     std::string TaskName = "Task2";
     void Run();
-    std::mutex mtx; // Mutex to protect myVector
-    long processLine(std::vector<char> line, const long cols)
+    std::vector<std::shared_ptr<Range2>> Ranges;
+    void loadRange(const std::string &line)
     {
-        std::println("length: {}, rows: {}", line.size(), line.size() / cols);
-
-        std::vector<char> drawing = line;
-        long totalRollCount = 0;
-        while (true)
-        {
-            long rval = 0;
-            long currentCharIndex = 0;
-            auto copydrawing = drawing;
-            for (auto c : copydrawing)
-            {
-                if (c == '.')
-                {
-                    currentCharIndex++;
-                    continue;
-                }
-                if (currentCharIndex == 49)
-                    std::print("");
-
-                Matrix2 n(copydrawing, cols, currentCharIndex);
-                auto foundRolls = n.GetRollCount();
-
-                if (foundRolls < 4)
-                {
-                    drawing[currentCharIndex] = '.';
-                    rval++;
-                }
-                currentCharIndex++;
-            }
-            //this->draw(drawing, cols);
-            totalRollCount += rval;
-            if (rval == 0)
-                break;
-        }
-        return totalRollCount;
-    }
-
-    void draw(const std::vector<char> &line, long length)
-    {
-        int index = 0;
+        long digitfrom = 0;
+        long digitto = 0;
+        std::string buffer;
         for (auto c : line)
         {
-            std::print("{}", c);
-            index++;
-            if (index == length)
+            if (c == '-')
             {
-                index = 0;
-                std::println();
+                digitfrom = std::stol(buffer);
+                buffer = "";
+                continue;
+            }
+            buffer += c;
+        }
+        digitto = std::stol(buffer);
+        Ranges.push_back(std::make_shared<Range2>(Range2(digitfrom, digitto)));
+
+    }
+    long countIds()
+    {
+        long rval = 0;
+
+        start:
+        std::println("Starting. Ranges size: {}", Ranges.size());
+        /*
+        for (auto range : Ranges)
+        {
+            std::println("{} - {}", range->Min, range->Max);
+        }
+        */
+        for (int i = 0; i < Ranges.size(); i++)
+        {
+            auto range = Ranges[i];
+            for (int inneri = 0; inneri < Ranges.size(); inneri++)
+            {
+                auto innerrange = Ranges[inneri];
+
+                if (i == inneri)
+                {
+                    continue;
+                }
+
+                if (range->IsOverlap(innerrange))
+                {
+                    std::println("Deleting {} - {} [{}] (is matching {} - {} [{}])", innerrange->Min, innerrange->Max, inneri, range->Min, range->Max, i);
+                    Ranges.erase(Ranges.begin() + inneri);
+                    goto start;
+                }
             }
         }
+
+        for (auto range : Ranges)
+        {
+            rval += (range->Max - range->Min) + 1;
+        }
+        return rval;
     }
+
 };
 
 

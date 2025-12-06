@@ -21,15 +21,19 @@ void task2::Run()
     int linelength = 0;
     std::vector<char> payload;
     payload.reserve(19000);
+    bool isrange = true;
+    long rval = 0;
     while(getline(file, line))
     {
-        linelength = line.length();
-        for (auto c : line)
+        if (line.empty())
         {
-            payload.push_back(c);
+            isrange = false;
+            break;
         }
+
+        this->loadRange(line);
     }
-    auto rval = this->processLine(payload, linelength);
-    //this->draw(rval, linelength);
+    rval = this->countIds();
+
     std::cout << this->TaskName << " SUM: " << rval <<std::endl;
 }
