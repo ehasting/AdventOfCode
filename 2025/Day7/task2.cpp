@@ -38,58 +38,51 @@ void task2::Run()
     Data newTable = currentTable;
     std::vector<long> RowCount;
 
-    for (long i = 0; i < newTable.Table.size(); i++)
+
+
+
+    long firstSplitterPos = -1;
+    for (long i = 0; i < newTable.Table.size();i++)
     {
-        long cursorIndex = 0;
-        auto &row = newTable.Table[i];
-        bool foundbeam = false;
-        bool anythingfound = false;
-        for (auto &col : row)
+        for (long j = 0; j < newTable.Table[i].size();j++)
         {
-            if (col == newTable.SplitterChar)
+            if (newTable.Table[i][j] == newTable.SplitterChar)
             {
-                anythingfound = true;
-                foundbeam = false;
-                if (RowCount.size() < cursorIndex+1)
+                long currentCount = 0;
+                firstSplitterPos = j;
+                for (long inneri = i; inneri < newTable.Table.size();inneri = inneri + 2)
                 {
-                    std::println("Creating {}", cursorIndex);
-                    RowCount.push_back(1);
+                    if (newTable.Table[inneri][firstSplitterPos] == newTable.SplitterChar)
+                    {
+                        newTable.Table[inneri][firstSplitterPos] = '0';
+                        currentCount++;
+                    }
+                    firstSplitterPos--;
+                    if (firstSplitterPos < 0)
+                        break;
                 }
-                else
-                {
-                    std::println("Adding to {}", cursorIndex);
-                    RowCount[cursorIndex]++;
-                }
+                RowCount.push_back(currentCount);
             }
-            else if (col == newTable.BeamChar && foundbeam)
-            {
-                //std::println("- Found Second BeamChar ");
-                foundbeam = false;
-                cursorIndex++;
-            }
-            else if (col == newTable.BeamChar)
-            {
-                //std::println("- Found First BeamChar ");
-                foundbeam = true;
-            }
+
         }
-        if (anythingfound)
-            std::println("--------");
 
     }
 
-    newTable.Draw();
+
+
     rval = 0;
     for (auto &n : RowCount)
     {
+        if (n == 1 || n == 0)
+            continue;
         std::print("({} * 2) + ", n);
         rval += (n*2);
     }
-/*
-    std::string output;
-    currentTable.Trace(currentTable.StartBeam, output);
-    std::println("{}", output);
-*/
+    /*
+        std::string output;
+        currentTable.Trace(currentTable.StartBeam, output);
+        std::println("{}", output);
+    */
 
-    std::cout << this->TaskName << " SUM: " << rval <<std::endl;
+    std::print("{} SUM: {}", this->TaskName, rval);
 }

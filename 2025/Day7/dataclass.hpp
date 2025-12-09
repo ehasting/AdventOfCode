@@ -27,9 +27,39 @@ public:
     }
 };
 
+class Leaf
+{
+    public:
+    std::shared_ptr<Leaf> Left = nullptr;
+    std::shared_ptr<Leaf> Right = nullptr;
+    Leaf()
+    {}
+
+    std::shared_ptr<Leaf> CreateAndReturnLeftLeaf()
+    {
+        this->Left = std::make_shared<Leaf>();
+        return this->Left;
+    }
+    std::shared_ptr<Leaf> CreateAndReturnRightLeaf()
+    {
+        this->Right = std::make_shared<Leaf>();
+        return this->Right;
+    }
+
+};
+
+
+
+class Tree
+{
+public:
+    Leaf Start;
+};
+
 class Data
 {
     public:
+    Tree BinaryTree;
     const char StartChar = 'S';
     const char EmptyChar = '.';
     const char SplitterChar = '^';
@@ -121,29 +151,6 @@ class Data
         StartBeam.X = current.X;
         CheckBranch(current);
     }
-    void Trace(const Coord &coord, std::string &output)
-    {
-        auto newCoord = JumpDown(coord);
-        if (newCoord.Y > Rows - 1)
-            return;
-        auto currentChar = GetCharAtCoord(newCoord);
-        //std::println("{}", currentChar);
-        if (currentChar == SplitterChar)
-        {
-            TraceSplitBeam(newCoord, output);
-        }
-        else if (currentChar == BeamChar)
-        {
-            JumpDown(newCoord);
-            Trace(newCoord, output);
-        }
 
-    }
-    void TraceSplitBeam(const Coord &coord, std::string &output)
-    {
-        Coord l(coord.X - 1, coord.Y);
-        output += "L";
-        Trace(l, output);
-    }
 };
 #endif //DAY5_DATACLASS_HPP
