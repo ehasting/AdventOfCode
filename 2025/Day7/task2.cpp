@@ -20,64 +20,33 @@ void task2::Run()
 
     std::string line;
     Data currentTable;
+    std::vector<char> row;
     while(getline(file, line))
     {
-        std::vector<char> row;
+        row.clear();
+        bool linewaswithsplitters = false;
         for (auto &c: line)
         {
+            if (c == '^' || c == 'S') {linewaswithsplitters = true;}
             row.push_back(c);
         }
-        currentTable.Table.push_back(row);
+        if (linewaswithsplitters)
+            currentTable.Table.push_back(row);
 
     }
+    currentTable.Table.push_back(row);
+    currentTable.Draw();
+    std::println("");
     currentTable.Compute();
+    currentTable.MapBtree(currentTable.BinaryTree);
+    std::println("next id: {}", Leaf::s_nextId.load());
     currentTable.Draw();
 
 
     long rval = 0;
-    Data newTable = currentTable;
-    std::vector<long> RowCount;
 
 
 
-
-    long firstSplitterPos = -1;
-    for (long i = 0; i < newTable.Table.size();i++)
-    {
-        for (long j = 0; j < newTable.Table[i].size();j++)
-        {
-            if (newTable.Table[i][j] == newTable.SplitterChar)
-            {
-                long currentCount = 0;
-                firstSplitterPos = j;
-                for (long inneri = i; inneri < newTable.Table.size();inneri = inneri + 2)
-                {
-                    if (newTable.Table[inneri][firstSplitterPos] == newTable.SplitterChar)
-                    {
-                        newTable.Table[inneri][firstSplitterPos] = '0';
-                        currentCount++;
-                    }
-                    firstSplitterPos--;
-                    if (firstSplitterPos < 0)
-                        break;
-                }
-                RowCount.push_back(currentCount);
-            }
-
-        }
-
-    }
-
-
-
-    rval = 0;
-    for (auto &n : RowCount)
-    {
-        if (n == 1 || n == 0)
-            continue;
-        std::print("({} * 2) + ", n);
-        rval += (n*2);
-    }
     /*
         std::string output;
         currentTable.Trace(currentTable.StartBeam, output);

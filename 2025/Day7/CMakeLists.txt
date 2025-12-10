@@ -10,7 +10,8 @@ add_executable(Day7 main.cpp
         task1.hpp
         task2.cpp
         task2.hpp
-        dataclass.hpp)
+        dataclass.hpp
+        dataclass.cpp)
 add_custom_target(copy_asset
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/payload.txt
